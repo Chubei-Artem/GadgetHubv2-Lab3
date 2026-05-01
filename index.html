@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GadgetHub - Електроніка від GadgetHub</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo" style="cursor: pointer;">GadgetHub</div>
+            <div class="search-box">
+                <input type="text" id="main-search" placeholder="Пошук...">
+                <button>Пошук</button>
+            </div>
+            <div class="nav-icons">
+                <button class="auth-btn" id="auth-btn">Увійти</button>
+                <button class="cart-btn" id="cart-btn">🛒 Кошик <span id="cart-count">0</span></button>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <section id="news-section">
+            <h2>Новини компанії</h2>
+            <div class="news-layout" style="display: flex; gap: 20px;">
+                <aside class="news-sidebar" style="width: 30%;">
+                    <ul id="news-headers-list" style="list-style: none; padding: 0;"></ul>
+                    <button id="load-more-news">Більше новин</button>
+                </aside>
+                <article class="news-main" id="news-content-area"
+                    style="width: 70%; border: 1px solid #ccc; padding: 20px; border-radius: 10px;">
+                    <p>Оберіть новину зі списку зліва...</p>
+                </article>
+            </div>
+        </section>
+
+        <section id="hot-deals" class="carousel-container">
+            <div class="carousel-viewport">
+                <div class="carousel-inner" id="carousel-inner">
+                </div>
+                <button class="carousel-prev" id="carousel-prev" style="font-size: 1.5rem;">‹</button>
+                <button class="carousel-next" id="carousel-next" style="font-size: 1.5rem;">›</button>
+            </div>
+        </section>
+
+        <section id="shop-section">
+            <div class="filter-panel">
+                <div class="category-filters">
+                    <button class="filter-btn active" data-type="all">Усі</button>
+                    <button class="filter-btn" data-type="phone">Телефони</button>
+                    <button class="filter-btn" data-type="laptop">Ноутбуки</button>
+                    <button class="filter-btn" data-type="tablet">Планшети</button>
+                </div>
+
+                <select id="sort-select">
+                    <option value="default">Сортувати за...</option>
+                    <option value="name-asc">Назва (А-Я)</option>
+                    <option value="name-desc">Назва (Я-А)</option>
+                    <option value="price-asc">Ціна: від дешевих до дорогих</option>
+                    <option value="price-desc">Ціна: від дорогих до дешевых</option>
+                </select>
+
+                <div class="price-filter">
+                    <input type="number" id="min-price" placeholder="Мін. ціна" min="0">
+                    <input type="number" id="max-price" placeholder="Макс. ціна" min="0">
+                    <button id="apply-price-filter">Застосувати</button>
+                </div>
+            </div>
+            <div id="product-grid" class="product-grid"></div>
+        </section>
+
+        <section id="analytics-section"
+            style="margin: 40px auto; max-width: 1200px; padding: 20px; background: white; border-radius: 10px;">
+            <h2>Статистика товарів</h2>
+            <div class="chart-controls" style="margin-bottom: 20px;">
+                <label>Оберіть вид графіку: </label>
+                <select id="chart-type-selector">
+                    <option value="pie">Аналітика категорій</option>
+                    <option value="bar">Порівняння цін на гаджети</option>
+                    <option value="line">Динаміка знижок по моделях</option>
+                </select>
+            </div>
+            <div style="max-width: 1000px; height: 400px; margin: 0 auto;">
+                <canvas id="myChart"></canvas>
+            </div>
+        </section>
+    </main>
+
+    <div id="auth-modal" class="modal-overlay modal-hidden">
+        <div class="modal-content">
+            <span id="close-auth" class="close-btn">&times;</span>
+            <div class="auth-tabs">
+                <button id="show-login" class="tab-btn active">Вхід</button>
+                <button id="show-register" class="tab-btn">Реєстрація</button>
+            </div>
+            <form id="login-form" class="auth-form">
+                <h2>Вхід</h2>
+                <input type="text" id="login-username" placeholder="Логін" required>
+                <input type="password" id="login-password" placeholder="Пароль" required>
+                <button type="submit" class="submit-btn">Увійти</button>
+            </form>
+            <form id="register-form" class="auth-form modal-hidden">
+                <h2>Реєстрація</h2>
+                <input type="text" id="register-username" placeholder="Логін" required>
+                <input type="email" id="register-email" placeholder="Email" required>
+                <input type="password" id="register-password" placeholder="Пароль" required>
+                <button type="submit" class="submit-btn">Зареєструватися</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="cart-modal" class="modal-overlay modal-hidden">
+        <div class="modal-content">
+            <span id="close-cart" class="close-btn">&times;</span>
+            <h2>Ваш кошик</h2>
+            <div id="cart-items"></div>
+            <div class="cart-footer">
+                <p>Загальна сума: <span id="cart-total">0</span> грн</p>
+                <button id="checkout-btn"
+                    style="background: #28a745; color: white; width: 100%; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                    Відправити замовлення
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="subscribe-window" class="bottom-banner modal-hidden">
+        <p>Бажаєте отримувати новини про знижки?</p>
+        <button id="sub-accept">Підписатися</button>
+        <button id="sub-decline">Ні, дякую</button>
+    </div>
+
+    <button id="scroll-top" class="hidden-btn">⇪</button>
+
+    <script src="data.js"></script>
+    <script src="interface.js"></script>
+    <script src="interface2.js"></script>
+</body>
+</html>
