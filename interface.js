@@ -1,73 +1,93 @@
 // GLOBAL STATE
-let currentProducts = [...products]; // active filtered/sorted product list for analytics
-let cart = JSON.parse(localStorage.getItem('cart')) || []; // cart load from localStorage
+// Поточний відфільтрований/відсортований список товарів для аналітики
+// Використовується spread operator [...] для створення копії масиву (щоб не змінювати оригінал)
+let currentProducts = [...products];
+// Кошик: завантажуємо з localStorage або створюємо порожній масив
+// JSON.parse() перетворює рядок JSON назад в об'єкт/масив
+// || [] — якщо в localStorage нічого немає, повертаємо порожній масив
+let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
 // FILTER
+/**
+ * Функція фільтрації товарів за категорією, пошуком, ціною та сортуванням
+ * Викликається при зміні будь-якого фільтру
+ */
 function applyFilters() {
-    // get active category filter (all/phone/laptop/tablet)
-    const activeType = document.querySelector('.filter-btn.active').dataset.type;
-    
-    // base filter by type
-    let filtered = activeType === 'all' 
-        ? [...products] 
-        : products.filter(p => p.type === activeType);
-    
-    // text search filter
-    const query = document.getElementById('main-search').value.toLowerCase();
+    // Отримуємо активну категорію з кнопки (all/phone/laptop/tablet)
+    // dataset.type читає data-type атрибут елемента
+    const activeType = document.querySelector(".filter-btn.active").dataset.type;
+
+    let filtered =
+        activeType === "all"
+            ? [...products]
+            : products.filter((p) => p.type === activeType);
+
+    // текстовий пошук по назві (case-insensitive)
+    const query = document.getElementById("main-search").value.toLowerCase();
     if (query) {
-        filtered = filtered.filter(p => p.name.toLowerCase().includes(query));
+        filtered = filtered.filter((p) => p.name.toLowerCase().includes(query));
     }
 
-    // price range filter
-    const min = parseFloat(document.getElementById('min-price').value) || 0;
-    const max = parseFloat(document.getElementById('max-price').value) || Infinity;
-    filtered = filtered.filter(p => p.price >= min && p.price <= max);
+    // ціновий діапазон
+    const min = parseFloat(document.getElementById("min-price").value) || 0;
+    const max =
+        parseFloat(document.getElementById("max-price").value) || Infinity;
+    filtered = filtered.filter((p) => p.price >= min && p.price <= max);
 
-    // sorting logic
-    const sortVal = document.getElementById('sort-select').value;
-    if (sortVal === 'price-asc') filtered.sort((a, b) => a.price - b.price);
-    else if (sortVal === 'price-desc') filtered.sort((a, b) => b.price - a.price);
-    else if (sortVal === 'name-asc') filtered.sort((a, b) => a.name.localeCompare(b.name));
-    else if (sortVal === 'name-desc') filtered.sort((a, b) => b.name.localeCompare(a.name));
+    // сортування
+    // parseFloat() перетворює рядок в число
+    // || 0 та || Infinity — значення за замовчуванням, якщо поле порожнє
+    const sortVal = document.getElementById("sort-select").value;
+    if (sortVal === "price-asc") filtered.sort((a, b) => a.price - b.price);
+    else if (sortVal === "price-desc") filtered.sort((a, b) => b.price - a.price);
+    else if (sortVal === "name-asc")
+        filtered.sort((a, b) => a.name.localeCompare(b.name));
+    else if (sortVal === "name-desc")
+        filtered.sort((a, b) => b.name.localeCompare(a.name));
 
-    // re-render UI + analytics
     renderProducts(filtered);
-    // sync analytics with current filtered data
+    // currentProducts оновлюється після застосування всіх фільтрів та сортування, щоб аналітика працювала з актуальним списком товарів
     currentProducts = filtered;
     renderAnalytics();
 }
 
 // EVENT BINDINGS for filters
+// кнопка пошуку
 document.querySelector('.search-box button').onclick = applyFilters;
-// category filter buttons
+// кнопки категорій
 document.querySelectorAll('.filter-btn').forEach(button => {
     button.onclick = () => {
-        // update active btn visual state
+        // знімаємо клас active з усіх кнопок, потім додаємо його до натиснутої
         document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
         button.classList.add('active');
         applyFilters();
     };
 });
-
+// сортування та ціновий фільтр
 document.getElementById('sort-select').onchange = applyFilters;
 document.getElementById('apply-price-filter').onclick = applyFilters;
 
 // RENDER PRODUCTS GRID (discount + description toggle)
+/**
+ * Відмальовує сітку товарів на сторінці
+ * @param {Array} productsList - масив товарів для відображення
+ */
 function renderProducts(productsList) {
     const grid = document.getElementById('product-grid');
     if (!grid) return;
-    grid.innerHTML = '';
-    
+    grid.innerHTML = ''; // очищаємо сітку перед рендером
+
     productsList.forEach(product => {
         const card = document.createElement('div');
         card.className = 'product-card';
-        
-        // enable drag-and-drop to cart icon (ID passed via dataTransfer)
+
+        // додаємо атрибут draggable для підтримки drag-and-drop
         card.setAttribute('draggable', 'true');
+        // при початку перетягування зберігаємо id товару в dataTransfer, щоб потім додати його в кошик
         card.ondragstart = (event) => {
             event.dataTransfer.setData("productId", product.id);
         };
-        
+
         card.innerHTML = `
             <div class="img-container">
                 ${product.discount > 0 ? `<div class="discount-badge">-${product.discount}%</div>` : ''}
@@ -79,26 +99,29 @@ function renderProducts(productsList) {
             <div class="product-desc modal-hidden">${product.desc}</div>
             <button class="add-to-cart-btn" data-id="${product.id}">Додати до кошика</button>
         `;
-        
-        // toggle product description visibility
+
+        // обробник для кнопки показу/приховування опису товару
         card.querySelector('.toggle-desc-btn').onclick = (event) => {
             const desc = card.querySelector('.product-desc');
+            // toggle класу modal-hidden для показу або приховування опису
             const isHidden = desc.classList.toggle('modal-hidden');
+            // змінюємо текст кнопки в залежності від стану опису
             event.target.textContent = isHidden ? 'Показати опис' : 'Сховати опис';
         };
-        grid.appendChild(card);
+        grid.appendChild(card); // додаємо картку товару в сітку
     });
 }
 
 // MODAL HANDLERS (auth + cart)
+// отримуємо посилання на модальні вікна
 const authModal = document.getElementById('auth-modal');
 const cartModal = document.getElementById('cart-modal');
-// open auth + cart modal on button click
+// кнопки для відкриття та закриття модальних вікон
 document.getElementById('auth-btn').onclick = () => authModal.classList.remove('modal-hidden');
-document.getElementById('cart-btn').onclick = () => { 
+document.getElementById('cart-btn').onclick = () => {
     cartModal.classList.remove('modal-hidden');
     cartModal.style.display = 'flex';
-    updateCartUI(); // refresh cart content
+    updateCartUI(); // оновлюємо вміст кошика при відкритті модального вікна, щоб відобразити актуальні товари та загальну суму замовлення
 };
 document.getElementById('close-auth').onclick = () => authModal.classList.add('modal-hidden');
 document.getElementById('close-cart').onclick = () => {
@@ -106,7 +129,7 @@ document.getElementById('close-cart').onclick = () => {
     cartModal.style.display = 'none';
 };
 
-// switch between login/register forms
+// перемикання між формами входу та реєстрації в модальному вікні аутентифікації
 document.getElementById('show-register').onclick = () => {
     document.getElementById('login-form').classList.add('modal-hidden');
     document.getElementById('register-form').classList.remove('modal-hidden');
@@ -116,7 +139,7 @@ document.getElementById('show-login').onclick = () => {
     document.getElementById('login-form').classList.remove('modal-hidden');
 };
 
-// close modals on overlay click
+// закриття модальних вікон при кліку поза їх межами (на оверлей)
 window.onclick = (event) => {
     if (event.target.classList.contains('modal-overlay')) {
         authModal.classList.add('modal-hidden');
@@ -128,7 +151,7 @@ window.onclick = (event) => {
 function renderCarousel() {
     const inner = document.getElementById('carousel-inner');
     if (!inner) return;
-    // render carousel from hotDeals array
+    // map cтворює новий масив з результатами виклику функції для кожного елемента, а join('') об'єднує всі рядки в один
     inner.innerHTML = hotDeals.map(deal => `
         <div class="carousel-item">
             <img src="${deal.image}" alt="${deal.title}">
@@ -137,7 +160,7 @@ function renderCarousel() {
 }
 
 let currentSlide = 0;
-// carousel navigation buttons
+// при кліку на кнопки "наступний" та "попередній" змінюємо поточний слайд та застосовуємо CSS трансформацію для переміщення каруселі
 document.getElementById('carousel-next').onclick = () => {
     currentSlide = (currentSlide + 1) % hotDeals.length;
     document.getElementById('carousel-inner').style.transform = `translateX(-${currentSlide * 100}%)`;
@@ -165,10 +188,10 @@ function showAd() {
         timeLeft--;
         document.getElementById('ad-timer').textContent = timeLeft;
         if (timeLeft <= 0) {
-            clearInterval(interval);
+            clearInterval(interval); // зупиняємо таймер
             const closeBtn = document.getElementById('close-ad');
-            closeBtn.disabled = false;
-            closeBtn.onclick = () => ad.remove();
+            closeBtn.disabled = false; // активуємо кнопку після закінчення таймера
+            closeBtn.onclick = () => ad.remove(); // видаляємо модальне вікно при кліку на кнопку закриття
         }
     }, 1000);
 }
@@ -183,7 +206,6 @@ document.getElementById('sub-decline').onclick = () => {
 };
 
 // SEARCH
-// const searchInput = document.getElementById('main-search'); for live search ^^ have btn-_-
 searchInput.addEventListener('input', applyFilters);
 
 // price filter inputs
